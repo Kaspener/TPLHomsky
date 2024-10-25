@@ -1,0 +1,13 @@
+{
+    "terminals": ["a", "b", "c"],
+    "nonterminals": ["A", "B", "C", "D", "F", "S"],
+    "rules": {
+        "S": ["aAB"],
+        "A": ["aA", "bB"],
+        "B": ["ACb", "b"],
+        "C": ["bA", "cC"],
+        "D": ["a", "c", "Fb"],
+        "F": ["BC", "AC"]
+    },
+    "startSymbol": "S"
+}
