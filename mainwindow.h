@@ -11,41 +11,46 @@ namespace Grammars {
         QMap<QChar, QStringList> rules;
         QChar startSymbol{};
 
-        void generateChains(const QString& currentChain, int minLength, int maxLength, QSet<QString>& result) {
+        void generateChains(const QString& currentChain, int minLength, int maxLength,
+                            QSet<QString>& result, QMap<QString, QString>& treeMap, const QString& path = "") {
             if (currentChain.length() > maxLength) return;
 
             bool isTerminalChain = true;
-            for(auto ch: currentChain){
-                if (nonterminals.contains(ch)){
+            for (auto ch : currentChain) {
+                if (nonterminals.contains(ch)) {
                     isTerminalChain = false;
                     break;
                 }
             }
 
-            if (isTerminalChain && currentChain.length() >= minLength){
+            if (isTerminalChain && currentChain.length() >= minLength) {
                 result.insert(currentChain);
+                treeMap.insert(currentChain, path);
                 return;
             }
 
-            for(int i = 0; i < currentChain.length(); ++i){
+            for (int i = 0; i < currentChain.length(); ++i) {
                 QChar symbol = currentChain[i];
-                if (rules.contains(symbol)){
-                    for(auto& rule: rules[symbol]){
+                if (rules.contains(symbol)) {
+                    for (auto& rule : rules[symbol]) {
                         QString newChain = currentChain;
                         newChain.removeAt(i);
-                        for(int j = 0; j < rule.length(); ++j){
-                            newChain.insert(i+j, rule[j]);
+                        for (int j = 0; j < rule.length(); ++j) {
+                            newChain.insert(i + j, rule[j]);
                         }
-                        generateChains(newChain, minLength, maxLength, result);
+
+                        QString newPath = path.isEmpty() ? QString("%1 -> %2").arg(currentChain).arg(newChain) :
+                                              QString("%1 -> %2").arg(path).arg(newChain);
+
+                        generateChains(newChain, minLength, maxLength, result, treeMap, newPath);
                     }
                 }
             }
         }
 
-        QSet<QString> generateAllChains(int minLength, int maxLength) {
-            QSet<QString> result;
-            generateChains(QString{startSymbol}, minLength, maxLength, result);
-            return result;
+        void generateAllChains(int minLength, int maxLength, QSet<QString>& result, QMap<QString, QString>& treeMap) {
+            QString initialChain = QString{startSymbol};
+            generateChains(initialChain, minLength, maxLength, result, treeMap);
         }
     };
 
@@ -55,41 +60,46 @@ namespace Grammars {
         QMap<QString, QList<QStringList>> rules;
         QString startSymbol{};
 
-        void generateChains(const QStringList& currentChain, int minLength, int maxLength, QSet<QStringList>& result) {
+        void generateChains(const QStringList& currentChain, int minLength, int maxLength,
+                            QSet<QStringList>& result, QMap<QString, QString>& treeMap, const QString& path = "") {
             if (currentChain.length() > maxLength) return;
 
             bool isTerminalChain = true;
-            for(auto& ch: currentChain){
-                if (nonterminals.contains(ch)){
+            for (auto& ch : currentChain) {
+                if (nonterminals.contains(ch)) {
                     isTerminalChain = false;
                     break;
                 }
             }
 
-            if (isTerminalChain && currentChain.length() >= minLength){
+            if (isTerminalChain && currentChain.length() >= minLength) {
                 result.insert(currentChain);
+                treeMap.insert(currentChain.join(""), path);
                 return;
             }
 
-            for(int i = 0; i < currentChain.length(); ++i){
+            for (int i = 0; i < currentChain.length(); ++i) {
                 QString symbol = currentChain[i];
-                if (rules.contains(symbol)){
-                    for(auto& rule: rules[symbol]){
+                if (rules.contains(symbol)) {
+                    for (auto& rule : rules[symbol]) {
                         QStringList newChain = currentChain;
                         newChain.removeAt(i);
-                        for(int j = 0; j < rule.length(); ++j){
-                            newChain.insert(i+j, rule[j]);
+                        for (int j = 0; j < rule.length(); ++j) {
+                            newChain.insert(i + j, rule[j]);
                         }
-                        generateChains(newChain, minLength, maxLength, result);
+
+                        QString newPath = path.isEmpty() ? QString("%1 -> %2").arg(currentChain.join("")).arg(newChain.join("")) :
+                                              QString("%1 -> %2").arg(path).arg(newChain.join(""));
+
+                        generateChains(newChain, minLength, maxLength, result, treeMap, newPath);
                     }
                 }
             }
         }
 
-        QSet<QStringList> generateAllChains(int minLength, int maxLength) {
-            QSet<QStringList> result;
-            generateChains(QStringList{startSymbol}, minLength, maxLength, result);
-            return result;
+        void generateAllChains(int minLength, int maxLength, QSet<QStringList>& result, QMap<QString, QString>& treeMap) {
+            QStringList initialChain{startSymbol};
+            generateChains(initialChain, minLength, maxLength, result, treeMap);
         }
     };
 }
@@ -112,6 +122,8 @@ private:
     Ui::MainWindow *ui;
     Grammars::CFG cfg;
     Grammars::Homskiy homsky;
+    QMap<QString, QString> cfgTrees;
+    QMap<QString, QString> homskiyTrees;
 
     void updateUIRules(const Grammars::CFG& cfg);
     bool checkCanon(const Grammars::CFG& cfg);

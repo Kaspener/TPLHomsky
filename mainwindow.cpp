@@ -1,6 +1,6 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include "chainmodal.h"
+#include "chaintreedialog.h"
 
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -446,10 +446,13 @@ void MainWindow::onShowChains()
     ui->listCFG->setModel(modelCFG);
     ui->listHomskiy->setModel(modelHomskiy);
 
-    QSet<QStringList> homskiyChains = homsky.generateAllChains(ui->left->value(), ui->right->value());
-    QSet<QString> CFGChains = cfg.generateAllChains(ui->left->value(), ui->right->value());
+    QSet<QString> cfgChains;
+    cfg.generateAllChains(ui->left->value(), ui->right->value(), cfgChains, cfgTrees);
 
-    displayChainsInListView(CFGChains, modelCFG);
+    QSet<QStringList> homskiyChains;
+    homsky.generateAllChains(ui->left->value(), ui->right->value(), homskiyChains, homskiyTrees);
+
+    displayChainsInListView(cfgChains, modelCFG);
     displayChainsInListView(homskiyChains, modelHomskiy);
     ui->checkEqualButton->show();
 
@@ -470,16 +473,24 @@ void MainWindow::onCheckEqual()
         items2 << modelHomskiy->item(row)->text();
     }
 
+    if (items1 == items2) {
+        QMessageBox::information(this, "Результат", "Все элементы одинаковы.");
+        return;
+    }
+    QMessageBox::information(this, "Результат", "Есть разные элементы. Они помечены красным.");
+
     for (int row = 0; row < modelCFG->rowCount(); ++row) {
         QStandardItem *item = modelCFG->item(row);
-        if (!items2.contains(item->text())) {
+        int conts = items2.contains(item->text());
+        if (conts != 1) {
             item->setBackground(QColor(Qt::red));
         }
     }
 
     for (int row = 0; row < modelHomskiy->rowCount(); ++row) {
         QStandardItem *item = modelHomskiy->item(row);
-        if (!items1.contains(item->text())) {
+        int conts = items1.contains(item->text());
+        if (conts != 1) {
             item->setBackground(QColor(Qt::red));
         }
     }
@@ -583,8 +594,10 @@ void MainWindow::removeRuleCFG(const QModelIndex &index) {
 void MainWindow::buildRuleTreeCFG(const QModelIndex &index)
 {
     QString chain = ui->listCFG->model()->data(index).toString();
-    ChainModal* modal = new ChainModal(chain, cfg, this);
-    modal->exec();
+    QString treePath = cfgTrees[chain];
+
+    ChainTreeDialog *dialog = new ChainTreeDialog(chain, treePath, this);
+    dialog->show();
 }
 
 void MainWindow::addRuleHomskiy() {
@@ -615,8 +628,10 @@ void MainWindow::removeRuleHomskiy(const QModelIndex &index) {
 void MainWindow::buildRuleTreeHomskiy(const QModelIndex &index)
 {
     QString chain = ui->listHomskiy->model()->data(index).toString();
-    //ChainModal* modal = new ChainModal(chain, homsky, this);
-    //modal->exec();
+    QString treePath = homskiyTrees[chain];
+
+    ChainTreeDialog *dialog = new ChainTreeDialog(chain, treePath, this);
+    dialog->show();
 }
 
 MainWindow::~MainWindow()
